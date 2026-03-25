@@ -2,146 +2,183 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>3D Принтери — Філамент CLOUD</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Filament Cloud Tracker</title>
 <style>
-/* Копіюємо всі оригінальні стилі для коректного відображення */
+/* --- ПОВНИЙ НАБІР СТИЛІВ З ОРИГІНАЛУ --- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, -apple-system, sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; padding: 2rem 1.5rem; }
-h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a1a; }
-.toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
-.toolbar input[type=text] { flex: 1; min-width: 140px; padding: 7px 12px; border: 0.5px solid #ccc; border-radius: 20px; font-size: 14px; background: #fff; outline: none; }
-.btn-tool { font-size: 13px; padding: 6px 14px; border-radius: 20px; border: 0.5px solid #ccc; background: #fff; color: #555; cursor: pointer; white-space: nowrap; }
-.btn-tool:hover { background: #f0f0f0; color: #111; }
-.btn-green { border-color: #1D9E75; color: #1D9E75; }
-.btn-blue { border-color: #378ADD; color: #378ADD; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f5f4f0; color: #1a1a1a; padding: 1rem; }
+.toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+.btn-tool { font-size: 13px; padding: 8px 14px; border-radius: 20px; border: 0.5px solid #ccc; background: #fff; cursor: pointer; }
+.btn-green { border-color: #1D9E75; color: #1D9E75; font-weight: bold; }
 .btn-orange { border-color: #EF9F27; color: #EF9F27; }
-.cloud-config { background: #fff; border: 1px dashed #EF9F27; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-.cloud-config input { width: 100%; margin-bottom: 8px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-family: monospace; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; padding-bottom: 2rem; }
-.card { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1rem; }
-.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D9E75; color: #fff; padding: 8px 20px; border-radius: 20px; opacity: 0; transition: opacity .3s; z-index: 300; pointer-events: none; }
+.card { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1rem; position: relative; margin-bottom: 10px; }
+.edit-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; cursor: pointer; font-size: 18px; }
+.bar-track { height: 8px; background: #eee; border-radius: 10px; margin-top: 10px; overflow: hidden; }
+.bar-fill { height: 100%; transition: width 0.3s; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 10px; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 15px; padding: 1.5rem; width: 100%; max-width: 350px; max-height: 90vh; overflow-y: auto; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+.field input, .field select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; } /* 16px запобігає зуму на iPhone */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: 0.3s; z-index: 2000; }
 .toast.show { opacity: 1; }
-.toast.error { background: #E24B4A; }
-.settings-panel { display: none; background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.settings-panel { display: none; background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
 .settings-panel.open { display: block; }
-/* ... інші стилі з оригіналу ... */
-.bar-track { height: 6px; background: #eee; border-radius: 20px; overflow: hidden; margin-top: 4px; }
-.bar-fill { height: 100%; border-radius: 20px; }
 </style>
 </head>
 <body>
 
-<h1>🖨 3D Принтери — Філамент CLOUD</h1>
-
 <div class="toolbar">
-  <input type="text" id="search" placeholder="Пошук за номером або моделлю..."/>
-  <button class="btn-tool btn-orange" onclick="loadFromCloud()">🔄 Оновити з хмари</button>
-  <button class="btn-tool btn-green" onclick="saveToCloud()">☁️ Зберегти в хмару</button>
-  <button class="btn-tool btn-blue" onclick="toggleSettings()">⚙ Налаштування</button>
+  <button class="btn-tool btn-orange" onclick="loadFromCloud()">🔄 Оновити</button>
+  <button class="btn-tool btn-green" onclick="saveToCloud()">☁️ ЗБЕРЕГТИ В ХМАРУ</button>
+  <button class="btn-tool" onclick="toggleSettings()">⚙️</button>
+  <button class="btn-tool" onclick="openModal(true)">+ Додати</button>
 </div>
 
-<div class="settings-panel" id="settings-panel">
-  <div class="cloud-config">
-    <h3 style="font-size: 14px; margin-bottom: 10px;">☁️ Налаштування JSONBin.io</h3>
-    <input type="text" id="cloud-bin-id" placeholder="Bin ID (напр. 65f1...)">
-    <input type="password" id="cloud-api-key" placeholder="X-Master-Key">
-    <button class="btn-tool btn-blue" style="width:100%" onclick="saveCloudKeys()">Зберегти ключі та завантажити</button>
+<div id="settings-panel" class="settings-panel">
+  <div class="field">
+    <label>JSONBin ID</label>
+    <input type="text" id="cloud-bin-id">
   </div>
-  <div id="cfg-sections">
-    </div>
+  <div class="field">
+    <label>X-Master-Key</label>
+    <input type="password" id="cloud-api-key">
+  </div>
+  <button class="btn-tool btn-green" style="width:100%" onclick="saveCloudKeys()">Зберегти ключі</button>
 </div>
 
-<div class="grid" id="grid"></div>
+<div id="grid"></div>
+
+<div class="modal-overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modal-title" style="margin-bottom:15px;">Редагувати принтер</h3>
+    <div class="field"><label>№ Принтера</label><input type="text" id="edit-num"></div>
+    <div class="field"><label>Модель</label><select id="edit-model"></select></div>
+    <div class="field"><label>Матеріал</label><select id="edit-mat"></select></div>
+    <div class="field"><label>Колір</label><select id="edit-color"></select></div>
+    <div class="field"><label>Вага разом (г)</label><input type="number" id="edit-grams"></div>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button class="btn-tool" style="flex:1" onclick="closeModal()">Скасувати</button>
+      <button class="btn-tool btn-green" style="flex:1" onclick="saveEdit()">Зберегти локально</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-let printers = [], CFG = {}, savedAt = null;
-const LS_KEY = 'filament_cloud_local';
+// Дані за замовчуванням (як у вашому файлі)
+let CFG = {
+  models: ["Modix 120Z", "Creality K1", "Bambu Lab P1S", "Bambu Lab P1P"],
+  mats: ["PG", "TPU 40D", "PETG", "ABS", "ASA"],
+  colors: ["білий", "чорний", "червоний", "синій", "зелений", "сірий"]
+};
+let printers = [];
+let editIdx = null;
 
-function showToast(m, isErr=false) { 
-  const t=document.getElementById('toast'); 
-  t.textContent=m; t.className = 'toast show' + (isErr?' error':'');
-  setTimeout(()=>t.classList.remove('show'), 3000); 
+function showToast(m) { 
+  const t = document.getElementById('toast'); 
+  t.textContent = m; t.classList.add('show'); 
+  setTimeout(() => t.classList.remove('show'), 2500); 
 }
 
 function toggleSettings() { document.getElementById('settings-panel').classList.toggle('open'); }
 
-// ВИПРАВЛЕНА ФУНКЦІЯ (якої бракувало)
-function saveToStorage() {
-  localStorage.setItem(LS_KEY, JSON.stringify({printers, CFG, savedAt}));
-}
-
 function saveCloudKeys() {
-  const bin = document.getElementById('cloud-bin-id').value.trim();
-  const key = document.getElementById('cloud-api-key').value.trim();
-  if(bin && key) {
-    localStorage.setItem('jsonbin_id', bin);
-    localStorage.setItem('jsonbin_key', key);
-    loadFromCloud();
-  } else {
-    showToast('Введіть обидва ключі!', true);
-  }
+  localStorage.setItem('jsonbin_id', document.getElementById('cloud-bin-id').value.trim());
+  localStorage.setItem('jsonbin_key', document.getElementById('cloud-api-key').value.trim());
+  showToast('Ключі збережено');
+  loadFromCloud();
 }
 
 async function loadFromCloud() {
-  const binId = localStorage.getItem('jsonbin_id');
-  const apiKey = localStorage.getItem('jsonbin_key');
-  if(!binId || !apiKey) { showToast('Налаштуйте ключі ⚙', true); return; }
-
-  showToast('Синхронізація...');
+  const bid = localStorage.getItem('jsonbin_id'), key = localStorage.getItem('jsonbin_key');
+  if(!bid || !key) return showToast('Налаштуйте ключі ⚙️');
+  showToast('Завантаження...');
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-      headers: { 'X-Master-Key': apiKey, 'X-Bin-Meta': false }
-    });
-    if(!res.ok) throw new Error('Помилка доступу');
-    const data = await res.json();
-    
-    printers = data.printers || [];
-    CFG = data.cfg || {};
-    savedAt = data.savedAt;
-    
-    saveToStorage();
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${bid}`, { headers: {'X-Master-Key': key, 'X-Bin-Meta': false }});
+    const d = await r.json();
+    printers = d.printers || [];
+    if(d.cfg) CFG = d.cfg;
     renderGrid();
-    showToast('Дані оновлено ✅');
-  } catch (e) {
-    showToast('Помилка API: ' + e.message, true);
-  }
+    showToast('Оновлено ✅');
+  } catch(e) { showToast('Помилка завантаження'); }
 }
 
 async function saveToCloud() {
-  const binId = localStorage.getItem('jsonbin_id');
-  const apiKey = localStorage.getItem('jsonbin_key');
-  if(!binId || !apiKey) return;
-
-  showToast('Збереження...');
+  const bid = localStorage.getItem('jsonbin_id'), key = localStorage.getItem('jsonbin_key');
+  if(!bid || !key) return showToast('Налаштуйте ключі');
+  showToast('Зберігаємо в хмару...');
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${bid}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+      headers: {'Content-Type': 'application/json', 'X-Master-Key': key},
       body: JSON.stringify({ printers, cfg: CFG, savedAt: new Date().toISOString() })
     });
-    if(res.ok) showToast('Збережено в хмару ☁️');
-    else throw new Error();
-  } catch (e) { showToast('Не вдалося зберегти', true); }
+    if(r.ok) showToast('В ХМАРІ ЗБЕРЕЖЕНО! ☁️');
+  } catch(e) { showToast('Помилка збереження'); }
 }
 
 function renderGrid() {
-  const g = document.getElementById('grid');
-  g.innerHTML = printers.map(p => `
-    <div class="card">
-      <div style="font-weight:bold; font-size:18px;">#${p.num}</div>
-      <div style="font-size:12px; color:#888;">${p.model}</div>
-      <div style="margin-top:10px;">${p.color} (${p.mat})</div>
-      <div style="font-weight:500; margin-top:5px;">${p.totalG} г</div>
-    </div>
-  `).join('');
+  const grid = document.getElementById('grid');
+  grid.innerHTML = printers.map((p, i) => {
+    const percent = Math.min(100, Math.max(0, (p.totalG / 3000) * 100)); // приклад розрахунку %
+    return `
+      <div class="card">
+        <button class="edit-btn" onclick="openModal(false, ${i})">✏️</button>
+        <div style="font-weight:bold; font-size:18px;">#${p.num} <span style="font-weight:normal; font-size:14px; color:#666;">${p.model}</span></div>
+        <div style="margin-top:5px;">${p.mat} | ${p.color}</div>
+        <div style="font-weight:bold; color:#1D9E75; margin-top:5px;">${p.totalG} г</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${percent}%; background:${percent<20?'#E24B4A':'#1D9E75'}"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openModal(isNew, idx = null) {
+  editIdx = idx;
+  const p = isNew ? {num:'', model:CFG.models[0], mat:CFG.mats[0], color:CFG.colors[0], totalG:0} : printers[idx];
+  
+  // Заповнюємо випадаючі списки
+  const fillSelect = (id, list, val) => {
+    const s = document.getElementById(id);
+    s.innerHTML = list.map(item => `<option value="${item}" ${item===val?'selected':''}>${item}</option>`).join('');
+  };
+  
+  fillSelect('edit-model', CFG.models, p.model);
+  fillSelect('edit-mat', CFG.mats, p.mat);
+  fillSelect('edit-color', CFG.colors, p.color);
+  document.getElementById('edit-num').value = p.num;
+  document.getElementById('edit-grams').value = p.totalG;
+  
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+function saveEdit() {
+  const newP = {
+    num: document.getElementById('edit-num').value,
+    model: document.getElementById('edit-model').value,
+    mat: document.getElementById('edit-mat').value,
+    color: document.getElementById('edit-color').value,
+    totalG: parseInt(document.getElementById('edit-grams').value) || 0
+  };
+  
+  if(editIdx === null) printers.push(newP);
+  else printers[editIdx] = newP;
+  
+  renderGrid();
+  closeModal();
+  showToast('Збережено локально. Не забудьте хмару! ☁️');
 }
 
 window.onload = () => {
   document.getElementById('cloud-bin-id').value = localStorage.getItem('jsonbin_id') || '';
   document.getElementById('cloud-api-key').value = localStorage.getItem('jsonbin_key') || '';
-  loadFromCloud();
+  if(localStorage.getItem('jsonbin_id')) loadFromCloud();
 };
 </script>
 </body>
