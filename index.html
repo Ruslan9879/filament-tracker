@@ -115,8 +115,8 @@ h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a1a; }
   <input type="text" id="search" placeholder="Пошук за номером або моделлю..."/>
   <button class="btn-tool btn-green" onclick="openAddPrinter()">+ Принтер</button>
   <button class="btn-tool btn-blue" id="settings-toggle" onclick="toggleSettings()">⚙ Налаштування</button>
-  <button class="btn-tool btn-green" onclick="saveJSON()">💾 Зберегти</button>
-  <button class="btn-tool" onclick="document.getElementById('file-input').click()">📂 Завантажити</button>
+  <button class="btn-tool btn-orange" onclick="loadFromCloud()">🔄 ОНОВИТИ З ХМАРИ</button>
+  <button class="btn-tool btn-green" onclick="saveToCloud()">☁️ ЗБЕРЕГТИ В ХМАРУ</button>
   <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadJSON(event)"/>
 </div>
 
@@ -584,6 +584,43 @@ function saveEdit() {
   else printers[editIdx]=entry;
   saveToStorage(); closeModal(); renderFilters(); renderGrid();
   showToast(isNewPrinter ? 'Принтер додано ✓' : 'Збережено ✓');
+}
+
+  function saveCloudKeys() {
+    localStorage.setItem('jsonbin_id', document.getElementById('cloud-bin-id').value.trim());
+    localStorage.setItem('jsonbin_key', document.getElementById('cloud-api-key').value.trim());
+    showToast('Ключі збережено! Оновлюю дані...');
+    loadFromCloud();
+}
+
+async function loadFromCloud() {
+    const bid = localStorage.getItem('jsonbin_id'), key = localStorage.getItem('jsonbin_key');
+    if(!bid || !key) { toggleSettings(); return showToast('Будь ласка, введіть ключі ⚙️'); }
+    
+    try {
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${bid}`, { headers: {'X-Master-Key': key, 'X-Bin-Meta': false }});
+        if(!r.ok) throw new Error();
+        const d = await r.json();
+        printers = d.printers || [];
+        if(d.cfg) CFG = d.cfg;
+        renderGrid();
+        showToast('Дані синхронізовано ✅');
+    } catch(e) { showToast('Помилка завантаження. Перевірте ключі.'); }
+}
+
+async function saveToCloud() {
+    const bid = localStorage.getItem('jsonbin_id'), key = localStorage.getItem('jsonbin_key');
+    if(!bid || !key) return showToast('Спочатку введіть ключі!');
+    
+    showToast('Збереження у хмару...');
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${bid}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json', 'X-Master-Key': key},
+            body: JSON.stringify({ printers, cfg: CFG, savedAt: new Date().toISOString() })
+        });
+        showToast('УСПІШНО ЗБЕРЕЖЕНО! ☁️✓');
+    } catch(e) { showToast('Помилка при збереженні'); }
 }
 
 document.getElementById('overlay').addEventListener('click',function(e){ if(e.target===this)closeModal(); });
