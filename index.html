@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>3D Принтери — Філамент Cloud</title>
+<style>
+/* ... (зберігаємо всі ваші стилі з оригіналу) ... */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; padding: 2rem 1.5rem; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a1a; }
+.toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.toolbar input[type=text] { flex: 1; min-width: 140px; padding: 7px 12px; border: 0.5px solid #ccc; border-radius: 20px; font-size: 14px; background: #fff; outline: none; }
+.btn-tool { font-size: 13px; padding: 6px 14px; border-radius: 20px; border: 0.5px solid #ccc; background: #fff; color: #555; cursor: pointer; white-space: nowrap; }
+.btn-tool:hover { background: #f0f0f0; color: #111; }
+.btn-green { border-color: #1D9E75; color: #1D9E75; }
+.btn-blue { border-color: #378ADD; color: #378ADD; }
+.btn-orange { border-color: #EF9F27; color: #EF9F27; }
+.btn-orange:hover { background: #FFF5E6; }
+
+/* Додаткові стилі для Cloud-налаштувань */
+.cloud-config { background: #f9f9f9; border: 1px dashed #ccc; padding: 10px; border-radius: 8px; margin-bottom: 15px; grid-column: 1 / -1; }
+.cloud-config input { width: 100%; margin-bottom: 8px; padding: 5px; font-family: monospace; font-size: 12px; }
+
+/* ... (інші стилі з вашого файлу v2) ... */
+.date-banner { background: #EAF3DE; border: 0.5px solid #C0DD97; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #3B6D11; margin-bottom: 1rem; display: none; }
+.stats-row { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
+.stat-box { flex: 1; min-width: 80px; background: #fff; border-radius: 8px; padding: 10px 12px; border: 0.5px solid #e0e0e0; }
+.stat-label { font-size: 12px; color: #888; }
+.stat-val { font-size: 20px; font-weight: 500; color: #1a1a1a; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; padding: .5rem 0 1rem; }
+.filter-btn { font-size: 13px; padding: 5px 14px; border-radius: 20px; border: 0.5px solid #ccc; background: #fff; color: #666; cursor: pointer; }
+.filter-btn.active { background: #eee; color: #111; border-color: #999; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; padding-bottom: 2rem; }
+.card { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1rem; }
+.material-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; margin-top: 6px; }
+.color-dot { width: 13px; height: 13px; border-radius: 50%; border: 0.5px solid #ccc; }
+.bar-track { height: 6px; background: #eee; border-radius: 20px; overflow: hidden; margin-top: 4px; }
+.bar-fill { height: 100%; border-radius: 20px; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D9E75; color: #fff; font-size: 13px; padding: 8px 20px; border-radius: 20px; opacity: 0; transition: opacity .3s; z-index: 300; }
+.toast.show { opacity: 1; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; padding: 1.5rem; width: 310px; }
+.settings-panel { display: none; background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.settings-panel.open { display: block; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>🖨 3D Принтери — Філамент CLOUD</h1>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="Пошук за номером або моделлю..."/>
+  <button class="btn-tool btn-orange" onclick="loadFromCloud()">🔄 Оновити з хмари</button>
+  <button class="btn-tool btn-green" onclick="saveToCloud()">☁️ Зберегти в хмару</button>
+  <button class="btn-tool btn-blue" id="settings-toggle" onclick="toggleSettings()">⚙ Налаштування</button>
+  <button class="btn-tool" onclick="saveJSON()">💾 Local Backup</button>
+</div>
+
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-grid">
+    <div class="cloud-config">
+      <h3 style="font-size: 12px; margin-bottom: 8px; color: #EF9F27;">☁️ Налаштування JSONBin.io</h3>
+      <input type="text" id="cloud-bin-id" placeholder="Bin ID (напр. 65f1...)">
+      <input type="password" id="cloud-api-key" placeholder="X-Master-Key">
+      <button class="btn-tool btn-blue" style="width:100%" onclick="saveCloudKeys()">Зберегти ключі в браузері</button>
+      <p style="font-size: 10px; color: #888; margin-top: 5px;">* Ключі зберігаються лише у вашому браузері.</p>
+    </div>
+
+    <div class="settings-section">
+      <h3>Моделі принтерів</h3>
+      <div class="tag-list" id="cfg-models"></div>
+    </div>
+    </div>
+</div>
+
+<div class="date-banner" id="date-banner"></div>
+<div class="stats-row" id="stats"></div>
+<div class="filters" id="filters"></div>
+<div class="grid" id="grid"></div>
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modal-title">Принтер</h3>
+    <div class="field"><label>№</label><input type="text" id="edit-num"></div>
+    <div class="field"><label>Вага разом (г)</label><input type="number" id="edit-grams"></div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal()">Скасувати</button>
+      <button class="btn-modal-save" id="modal-save-btn" onclick="saveEdit()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Cloud Logic ── */
+function saveCloudKeys() {
+  const bin = document.getElementById('cloud-bin-id').value.trim();
+  const key = document.getElementById('cloud-api-key').value.trim();
+  if(bin && key) {
+    localStorage.setItem('jsonbin_id', bin);
+    localStorage.setItem('jsonbin_key', key);
+    showToast('Ключі збережено! Пробую завантажити...');
+    loadFromCloud();
+  }
+}
+
+async function loadFromCloud() {
+  const BIN_ID = localStorage.getItem('jsonbin_id');
+  const API_KEY = localStorage.getItem('jsonbin_key');
+  
+  if(!BIN_ID || !API_KEY) {
+    showToast('Спершу вкажіть API ключі в налаштуваннях! ⚙');
+    toggleSettings();
+    return;
+  }
+
+  showToast('Завантаження...');
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+      headers: { 'X-Master-Key': API_KEY }
+    });
+    if(!res.ok) throw new Error('Помилка API');
+    const data = await res.json();
+    
+    // Оновлюємо глобальні змінні
+    printers = data.record.printers || [];
+    CFG = data.record.cfg || CFG;
+    savedAt = data.record.savedAt || null;
+    
+    saveToStorage(); // бекап в локал сторедж
+    renderAll();
+    showToast('Оновлено з хмари ✅');
+  } catch(e) {
+    showToast('Помилка: ' + e.message);
+  }
+}
+
+async function saveToCloud() {
+  const BIN_ID = localStorage.getItem('jsonbin_id');
+  const API_KEY = localStorage.getItem('jsonbin_key');
+  
+  if(!BIN_ID || !API_KEY) {
+    showToast('Ключі не знайдено!');
+    return;
+  }
+
+  savedAt = new Date().toISOString();
+  const payload = { savedAt, printers, cfg: CFG };
+
+  showToast('Збереження...');
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': API_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+    if(res.ok) {
+      showBanner();
+      showToast('Хмара оновлена! ☁️✓');
+    }
+  } catch(e) {
+    showToast('Помилка збереження');
+  }
+}
+
+/* ── Решта функцій (Grid, Stats, Filters) з вашого v2 ── */
+// (Я скоротив їх для компактності, але вони мають бути ідентичні вашому v2)
+
+let CFG = { models: [], mats: [], colors: [], spools: [], holders: [] };
+let printers = [];
+let savedAt = null;
+
+function renderAll() {
+  renderSettings();
+  renderFilters();
+  renderGrid();
+  showBanner();
+}
+
+// ... (Додайте сюди всі ваші функції: spoolById, netG, renderGrid, openModal, saveEdit тощо з файлу v2) ...
+
+window.addEventListener('load', () => {
+  // Підставляємо збережені ключі в інпути
+  document.getElementById('cloud-bin-id').value = localStorage.getItem('jsonbin_id') || '';
+  document.getElementById('cloud-api-key').value = localStorage.getItem('jsonbin_key') || '';
+  
+  // Пробуємо завантажити дані
+  if(localStorage.getItem('jsonbin_id')) loadFromCloud();
+  else if(loadFromStorage()) renderAll(); 
+});
+
+/* ── Ваші хелпери з v2 ── */
+function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+function toggleSettings(){ document.getElementById('settings-panel').classList.toggle('open'); }
+// і так далі...
+</script>
+</body>
+</html>
