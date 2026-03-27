@@ -1,225 +1,553 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Filament Tracker Pro</title>
-    <style>
-        :root { --primary: #1D9E75; --bg: #f5f4f0; --card: #ffffff; }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); color: #1a1a1a; padding: 15px; line-height: 1.4; }
-        
-        .toolbar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-        .btn { border-radius: 20px; border: 0.5px solid #ccc; background: #fff; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 500; }
-        .btn-main { border-color: var(--primary); color: var(--primary); }
-        .btn-cloud { border-color: #EF9F27; color: #EF9F27; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>3D Принтери — Філамент</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; padding: 2rem 1.5rem; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a1a; }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .card { background: var(--card); border: 0.5px solid #ddd; border-radius: 12px; padding: 15px; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .edit-btn { position: absolute; top: 12px; right: 12px; font-size: 18px; background: none; border: none; cursor: pointer; }
+.toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.toolbar input[type=text] { flex: 1; min-width: 140px; padding: 7px 12px; border: 0.5px solid #ccc; border-radius: 20px; font-size: 14px; background: #fff; outline: none; }
+.toolbar input[type=text]:focus { border-color: #888; }
+.btn-tool { font-size: 13px; padding: 6px 14px; border-radius: 20px; border: 0.5px solid #ccc; background: #fff; color: #555; cursor: pointer; white-space: nowrap; transition: background .15s; }
+.btn-tool:hover { background: #f0f0f0; color: #111; }
+.btn-green { border-color: #1D9E75; color: #1D9E75; }
+.btn-green:hover { background: #EAF3DE; color: #0F6E56; }
+.btn-blue { border-color: #378ADD; color: #378ADD; }
+.btn-blue:hover { background: #E6F1FB; color: #185FA5; }
+.btn-tool:disabled { opacity: .45; cursor: not-allowed; }
 
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .net-weight { font-size: 24px; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        
-        /* Modal Styles */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
-        .modal-overlay.open { display: flex; }
-        .modal { background: #fff; border-radius: 16px; padding: 20px; width: 95%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
-        .field { margin-bottom: 15px; }
-        .field label { display: block; font-size: 11px; color: #888; margin-bottom: 4px; text-transform: uppercase; }
-        .field input, .field select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
-        
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: 0.3s; z-index: 2000; pointer-events: none; }
-        .toast.show { opacity: 1; }
-    </style>
+.sync-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; margin-bottom: .75rem; min-height: 20px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+.sync-dot.ok { background: #1D9E75; }
+.sync-dot.err { background: #E24B4A; }
+.sync-dot.loading { background: #EF9F27; animation: pulse .8s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.date-banner { background: #EAF3DE; border: 0.5px solid #C0DD97; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #3B6D11; margin-bottom: 1rem; display: none; }
+.date-banner b { font-weight: 500; }
+
+.stats-row { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
+.stat-box { flex: 1; min-width: 80px; background: #fff; border-radius: 8px; padding: 10px 12px; border: 0.5px solid #e0e0e0; }
+.stat-label { font-size: 12px; color: #888; margin-bottom: 2px; }
+.stat-val { font-size: 20px; font-weight: 500; color: #1a1a1a; }
+
+.filters { display: flex; gap: 8px; flex-wrap: wrap; padding: .5rem 0 1rem; }
+.filter-btn { font-size: 13px; padding: 5px 14px; border-radius: 20px; border: 0.5px solid #ccc; background: #fff; color: #666; cursor: pointer; }
+.filter-btn.active { background: #eee; color: #111; border-color: #999; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; padding-bottom: 2rem; }
+.card { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1rem; transition: border-color .2s; }
+.card:hover { border-color: #bbb; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.printer-num { font-size: 22px; font-weight: 500; line-height: 1; }
+.printer-model { font-size: 11px; color: #aaa; margin-top: 2px; }
+.edit-btn { font-size: 12px; padding: 3px 9px; border-radius: 20px; border: 0.5px solid #ccc; background: transparent; color: #888; cursor: pointer; }
+.edit-btn:hover { background: #f0f0f0; color: #111; }
+.del-btn { font-size: 12px; padding: 3px 7px; border-radius: 20px; border: 0.5px solid #f0c0c0; background: transparent; color: #E24B4A; cursor: pointer; margin-left: 4px; }
+.del-btn:hover { background: #FCEBEB; }
+.card-actions { display: flex; align-items: center; }
+.material-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; margin-top: 6px; }
+.spool-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 20px; margin-top: 4px; margin-left: 4px; background: #f0f0f0; color: #888; border: 0.5px solid #e0e0e0; }
+.color-dot-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.color-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; border: 0.5px solid #ccc; }
+.color-name { font-size: 13px; color: #888; }
+.bar-wrap { margin-top: 12px; }
+.bar-label { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 4px; }
+.bar-track { height: 6px; background: #eee; border-radius: 20px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 20px; }
+.grams-big { font-size: 15px; font-weight: 500; color: #1a1a1a; }
+.grams-pct { font-size: 12px; color: #aaa; margin-left: 3px; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D9E75; color: #fff; font-size: 13px; padding: 8px 20px; border-radius: 20px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+.toast.err { background: #E24B4A; }
+.toast.show { opacity: 1; }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border: 0.5px solid #ccc; border-radius: 12px; padding: 1.5rem; width: 310px; max-width: 94vw; max-height: 90vh; overflow-y: auto; }
+.modal h3 { font-size: 16px; font-weight: 500; margin: 0 0 1.25rem; }
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-size: 13px; color: #888; margin-bottom: 5px; }
+.field select, .field input[type=number], .field input[type=text] { width: 100%; padding: 7px 10px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
+.field input:focus, .field select:focus { border-color: #888; }
+.seg { display: flex; border: 0.5px solid #ccc; border-radius: 8px; overflow: hidden; }
+.seg button { flex: 1; padding: 7px 4px; font-size: 12px; border: none; background: #fff; color: #666; cursor: pointer; transition: background .15s, color .15s; line-height: 1.3; }
+.seg button.active { background: #1a1a1a; color: #fff; }
+.seg button:not(:last-child) { border-right: 0.5px solid #ccc; }
+.tare-info { font-size: 12px; color: #bbb; margin-top: 4px; }
+.calc-hint { font-size: 12px; color: #1D9E75; margin-top: 4px; min-height: 16px; }
+.modal-btns { display: flex; gap: 8px; margin-top: 1.25rem; }
+.btn-modal-save { flex: 1; padding: 7px; border-radius: 8px; border: none; background: #1D9E75; color: #fff; font-size: 14px; cursor: pointer; }
+.btn-modal-save:hover { background: #0F6E56; }
+.btn-modal-cancel { flex: 1; padding: 7px; border-radius: 8px; border: 0.5px solid #ccc; background: transparent; color: #666; font-size: 14px; cursor: pointer; }
+.btn-modal-cancel:hover { background: #f0f0f0; }
+
+.settings-panel { display: none; background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.settings-panel.open { display: block; }
+.settings-panel h2 { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.settings-section h3 { font-size: 12px; color: #888; font-weight: 400; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag { display: flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 8px; border-radius: 20px; background: #f5f4f0; border: 0.5px solid #e0e0e0; color: #444; }
+.tag .tag-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 0 0 2px; }
+.tag .tag-del:hover { color: #E24B4A; }
+.tag-add-row { display: flex; gap: 6px; }
+.tag-add-row input { flex: 1; padding: 5px 8px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; outline: none; }
+.tag-add-row input:focus { border-color: #888; }
+.tag-add-row button { padding: 5px 12px; border-radius: 8px; border: 0.5px solid #1D9E75; background: transparent; color: #1D9E75; font-size: 13px; cursor: pointer; }
+.tag-add-row button:hover { background: #EAF3DE; }
+.item-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.item-row { display: flex; align-items: center; gap: 6px; font-size: 13px; background: #f5f4f0; border: 0.5px solid #e0e0e0; border-radius: 8px; padding: 5px 8px; }
+.item-row span { flex: 1; }
+.item-row .item-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; }
+.item-row .item-del:hover { color: #E24B4A; }
+.item-add-row { display: flex; gap: 6px; }
+.item-add-row input { flex: 1; padding: 5px 8px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; outline: none; min-width: 0; }
+.item-add-row input:focus { border-color: #888; }
+.item-add-row input[type=number] { width: 70px; flex: none; }
+.item-add-row button { padding: 5px 10px; border-radius: 8px; border: 0.5px solid #1D9E75; background: transparent; color: #1D9E75; font-size: 13px; cursor: pointer; }
+.item-add-row button:hover { background: #EAF3DE; }
+</style>
 </head>
 <body>
 
+<h1>🖨 3D Принтери — Філамент</h1>
+
 <div class="toolbar">
-    <button class="btn btn-cloud" onclick="loadFromCloud()">🔄 Оновити</button>
-    <button class="btn btn-main" onclick="saveToCloud()">☁️ ЗБЕРЕГТИ В ХМАРУ</button>
-    <button class="btn" onclick="openModal(true)">+ Додати принтер</button>
-    <button class="btn" onclick="toggleSettings()">⚙️ Ключі</button>
+  <input type="text" id="search" placeholder="Пошук за номером або моделлю..."/>
+  <button class="btn-tool btn-green" onclick="openAddPrinter()">+ Принтер</button>
+  <button class="btn-tool btn-blue" onclick="toggleSettings()">⚙ Налаштування</button>
+  <button class="btn-tool btn-green" id="btn-sync" onclick="pushData()">☁ Зберегти</button>
+  <button class="btn-tool" id="btn-refresh" onclick="pullData()">↻ Оновити</button>
 </div>
 
-<div id="settings" style="display:none; background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; border:1px dashed #EF9F27;">
-    <div class="field"><label>Bin ID</label><input type="text" id="bin-id"></div>
-    <div class="field"><label>Master Key</label><input type="password" id="api-key"></div>
-    <button class="btn btn-main" style="width:100%" onclick="saveKeys()">Зберегти ключі</button>
+<div class="sync-bar">
+  <div class="sync-dot" id="sync-dot"></div>
+  <span id="sync-label">Завантаження...</span>
 </div>
 
-<div class="grid" id="grid"></div>
+<div class="date-banner" id="date-banner"></div>
 
-<div class="modal-overlay" id="modal">
-    <div class="modal">
-        <h3 id="modal-title">Принтер</h3>
-        <div class="field"><label>Номер</label><input type="text" id="m-num"></div>
-        <div class="field"><label>Модель</label><select id="m-model"></select></div>
-        <div class="field"><label>Матеріал</label><select id="m-mat"></select></div>
-        <div class="field"><label>Колір</label><select id="m-color"></select></div>
-        
-        <hr style="margin:15px 0; opacity:0.2">
-        
-        <div class="field"><label>Тип катушки</label><select id="m-spool" onchange="calcNet()"></select></div>
-        <div class="field"><label>Тип підставки</label><select id="m-holder" onchange="calcNet()"></select></div>
-        <div class="field"><label>Вага на вагах (г)</label><input type="number" id="m-total" oninput="calcNet()"></div>
-        
-        <div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:15px;">
-            <div style="font-size:12px; color:#666;">Чиста вага пластику:</div>
-            <div id="m-net-display" style="font-size:20px; font-weight:bold; color:var(--primary);">0 г</div>
-        </div>
-
-        <div style="display:flex; gap:10px;">
-            <button class="btn" style="flex:1" onclick="closeModal()">Скасувати</button>
-            <button class="btn btn-main" style="flex:1" onclick="saveData()">Зберегти</button>
-        </div>
+<div class="settings-panel" id="settings-panel">
+  <h2>⚙ Налаштування довідників</h2>
+  <div class="settings-grid">
+    <div class="settings-section">
+      <h3>Моделі принтерів</h3>
+      <div class="tag-list" id="cfg-models"></div>
+      <div class="tag-add-row"><input type="text" id="new-model" placeholder="напр. Bambu X1"/><button onclick="addCfgItem('models','new-model','cfg-models')">+ Додати</button></div>
     </div>
+    <div class="settings-section">
+      <h3>Матеріали</h3>
+      <div class="tag-list" id="cfg-mats"></div>
+      <div class="tag-add-row"><input type="text" id="new-mat" placeholder="напр. PETG"/><button onclick="addCfgItem('mats','new-mat','cfg-mats')">+ Додати</button></div>
+    </div>
+    <div class="settings-section">
+      <h3>Кольори</h3>
+      <div class="tag-list" id="cfg-colors"></div>
+      <div class="tag-add-row"><input type="text" id="new-color" placeholder="напр. помаранчевий"/><button onclick="addCfgItem('colors','new-color','cfg-colors')">+ Додати</button></div>
+    </div>
+    <div class="settings-section">
+      <h3>Котушки (назва · вага г · макс г)</h3>
+      <div class="item-list" id="cfg-spools"></div>
+      <div class="item-add-row">
+        <input type="text" id="new-spool-name" placeholder="Назва"/>
+        <input type="number" id="new-spool-w" placeholder="г" min="1"/>
+        <input type="number" id="new-spool-max" placeholder="макс г" min="1"/>
+        <button onclick="addSpool()">+</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Тримачі (назва · вага г)</h3>
+      <div class="item-list" id="cfg-holders"></div>
+      <div class="item-add-row">
+        <input type="text" id="new-holder-name" placeholder="Назва"/>
+        <input type="number" id="new-holder-w" placeholder="г" min="1"/>
+        <button onclick="addHolder()">+</button>
+      </div>
+    </div>
+  </div>
 </div>
 
+<div class="stats-row" id="stats"></div>
+<div class="filters" id="filters"></div>
+<div class="grid" id="grid"></div>
 <div class="toast" id="toast"></div>
 
+<div class="modal-overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modal-title">Принтер</h3>
+    <div class="field"><label>№ принтера</label><input type="text" id="edit-num" placeholder="напр. 999"/></div>
+    <div class="field"><label>Модель</label><select id="edit-model"></select></div>
+    <div class="field"><label>Котушка</label><div class="seg" id="seg-spool"></div></div>
+    <div class="field"><label>Тримач</label><div class="seg" id="seg-holder"></div></div>
+    <div class="field"><label>Матеріал</label><select id="edit-mat"></select></div>
+    <div class="field"><label>Колір</label><select id="edit-color"></select></div>
+    <div class="field">
+      <label>Загальна вага на терезах (г)</label>
+      <input type="number" id="edit-grams" min="0" max="9999" step="1" placeholder="напр. 1500"/>
+      <div class="tare-info" id="tare-info"></div>
+      <div class="calc-hint" id="calc-hint"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal()">Скасувати</button>
+      <button class="btn-modal-save" id="modal-save-btn" onclick="saveEdit()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
 <script>
-    // КОНФІГУРАЦІЯ (Довідники)
-    const CFG = {
-        models: ["Bambu Lab P1S", "Bambu Lab P1P", "Modix 120Z", "Creality K1"],
-        mats: ["PG", "TPU 40D", "PETG", "ABS", "ASA", "PC"],
-        colors: ["білий", "чорний", "червоний", "синій", "зелений", "сірий", "прозорий"],
-        spools: {
-            "large": { name: "Велика (1000г)", tare: 250 },
-            "small": { name: "Мала (750г)", tare: 180 },
-            "empty": { name: "Тільки пластик (0г)", tare: 0 }
-        },
-        holders: {
-            "stand": { name: "Стандартна підставка", tare: 120 },
-            "roller": { name: "Ролики", tare: 50 },
-            "none": { name: "Без підставки", tare: 0 }
-        }
-    };
+/* ── JSONbin config ── */
+const BIN_ID  = '69c41206c3097a1dd55c6fa1';
+const API_KEY = '$2a$10$k3VDtNeJyEet/INDppq3IekdR7MYZkERX4qhase1LPxpXHsURbGAi';
+const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const HEADERS = { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY };
 
-    let printers = [];
-    let currentIdx = null;
+/* ── Default config ── */
+let CFG = {
+  models:  ['Modix 120Z','Creality K1','Bambu Lab P1S','Bambu Lab P1P'],
+  mats:    ['PG','TPU 40D','Полікарбонат','PETG','ABS','ASA'],
+  colors:  ['чорний','білий','темно-сірий','прозорий','червоний','синій','жовтий','зелений','сірий'],
+  spools:  [
+    {id:'large', label:'Велика · 650 г', weight:650, maxNet:3000},
+    {id:'small',  label:'Мала · 250 г',  weight:250, maxNet:750},
+  ],
+  holders: [
+    {id:'stand',  label:'Стійка · 215 г', weight:215},
+    {id:'roller', label:'Ролики · 300 г', weight:300},
+  ],
+};
 
-    function showToast(m) {
-        const t = document.getElementById('toast');
-        t.textContent = m; t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2500);
-    }
+/* ── Helpers ── */
+function spoolById(id)  { return CFG.spools.find(s=>s.id===id)  || CFG.spools[0]; }
+function holderById(id) { return CFG.holders.find(h=>h.id===id) || CFG.holders[0]; }
+function getTare(sId,hId){ return spoolById(sId).weight + holderById(hId).weight; }
+function getMaxNet(sId)  { return spoolById(sId).maxNet; }
+function netG(tot,sId,hId)  { return Math.max(0, tot - getTare(sId,hId)); }
+function pctOf(tot,sId,hId) { return Math.min(100, Math.round(netG(tot,sId,hId)/getMaxNet(sId)*100)); }
+function barColor(p){ return p>=75?'#1D9E75':p>=40?'#EF9F27':'#E24B4A'; }
+function fmtDT(iso){
+  if(!iso) return '—';
+  const d=new Date(iso), p=n=>String(n).padStart(2,'0');
+  return `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 
-    function toggleSettings() {
-        const s = document.getElementById('settings');
-        s.style.display = s.style.display === 'none' ? 'block' : 'none';
-    }
+const colorDots = {
+  'чорний':'#222','білий':'#e8e8e8','темно-сірий':'#555',
+  'прозорий':'repeating-linear-gradient(45deg,#ccc 0,#ccc 3px,#fff 3px,#fff 6px)',
+  'червоний':'#E24B4A','синій':'#378ADD','жовтий':'#EF9F27','зелений':'#1D9E75','сірий':'#888','помаранчевий':'#F97316',
+};
+const matPalette = [
+  {bg:'#E6F1FB',text:'#0C447C'},{bg:'#FAEEDA',text:'#633806'},{bg:'#EAF3DE',text:'#27500A'},
+  {bg:'#FBEAF0',text:'#72243E'},{bg:'#EEEDFE',text:'#3C3489'},{bg:'#FAECE7',text:'#712B13'},
+  {bg:'#E1F5EE',text:'#085041'},{bg:'#F1EFE8',text:'#444441'},
+];
+const matColorMap = {};
+function matColor(mat){
+  if(!matColorMap[mat]){
+    const keys=Object.keys(matColorMap);
+    matColorMap[mat]=matPalette[keys.length % matPalette.length];
+  }
+  return matColorMap[mat];
+}
 
-    function saveKeys() {
-        localStorage.setItem('bin_id', document.getElementById('bin-id').value.trim());
-        localStorage.setItem('api_key', document.getElementById('api-key').value.trim());
-        showToast('Ключі збережено');
-        loadFromCloud();
-    }
+/* ── State ── */
+let printers=[], savedAt=null;
+let activeFilter='all', searchQ='', editIdx=null, isNew=false;
+let currentSpoolId=null, currentHolderId=null;
 
-    async function loadFromCloud() {
-        const bid = localStorage.getItem('bin_id'), key = localStorage.getItem('api_key');
-        if(!bid || !key) return showToast('Налаштуйте ключі ⚙️');
-        showToast('Завантаження...');
-        try {
-            const r = await fetch(`https://api.jsonbin.io/v3/b/${bid}`, { headers: {'X-Master-Key': key, 'X-Bin-Meta': false }});
-            const d = await r.json();
-            printers = d.printers || [];
-            renderGrid();
-            showToast('Оновлено ✅');
-        } catch(e) { showToast('Помилка API'); }
-    }
+/* ── Sync status ── */
+function syncStatus(state, msg){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  dot.className='sync-dot '+(state==='ok'?'ok':state==='err'?'err':'loading');
+  lbl.textContent=msg;
+}
 
-    async function saveToCloud() {
-        const bid = localStorage.getItem('bin_id'), key = localStorage.getItem('api_key');
-        if(!bid || !key) return showToast('Введіть ключі!');
-        showToast('Збереження...');
-        try {
-            await fetch(`https://api.jsonbin.io/v3/b/${bid}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json', 'X-Master-Key': key},
-                body: JSON.stringify({ printers, cfg: CFG, savedAt: new Date().toISOString() })
-            });
-            showToast('ЗБЕРЕЖЕНО В ХМАРІ! ☁️✓');
-        } catch(e) { showToast('Помилка збереження'); }
-    }
+/* ── Toast ── */
+function showToast(msg, isErr=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(isErr?' err':'');
+  void t.offsetWidth; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
 
-    function calcNet() {
-        const total = parseInt(document.getElementById('m-total').value) || 0;
-        const sTare = CFG.spools[document.getElementById('m-spool').value].tare;
-        const hTare = CFG.holders[document.getElementById('m-holder').value].tare;
-        const net = Math.max(0, total - sTare - hTare);
-        document.getElementById('m-net-display').textContent = net + ' г';
-        return net;
-    }
+/* ── Banner ── */
+function showBanner(){
+  const b=document.getElementById('date-banner');
+  if(savedAt){ b.innerHTML='📅 Актуально на: <b>'+fmtDT(savedAt)+'</b>'; b.style.display='block'; }
+  else b.style.display='none';
+}
 
-    function renderGrid() {
-        const grid = document.getElementById('grid');
-        grid.innerHTML = printers.map((p, i) => {
-            const sTare = CFG.spools[p.spoolId]?.tare || 0;
-            const hTare = CFG.holders[p.holderId]?.tare || 0;
-            const net = Math.max(0, p.totalG - sTare - hTare);
-            return `
-                <div class="card">
-                    <button class="edit-btn" onclick="openModal(false, ${i})">✏️</button>
-                    <div style="font-weight:bold; font-size:20px;">#${p.num}</div>
-                    <div style="color:#888; font-size:12px; margin-bottom:10px;">${p.model}</div>
-                    <div class="info-row"><span>${p.mat}</span><span>${p.color}</span></div>
-                    <div class="net-weight">${net} г <span style="font-size:12px; font-weight:normal; color:#999;">(чистий)</span></div>
-                    <div style="font-size:11px; color:#aaa;">Разом на вагах: ${p.totalG}г</div>
-                </div>
-            `;
-        }).join('');
-    }
+/* ── JSONbin pull ── */
+async function pullData(){
+  syncStatus('loading','Завантаження...');
+  document.getElementById('btn-refresh').disabled=true;
+  try {
+    const r=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':API_KEY}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    const data=j.record;
+    if(data.printers) printers=data.printers;
+    if(data.cfg) CFG=data.cfg;
+    if(data.savedAt) savedAt=data.savedAt;
+    renderSettings(); renderFilters(); renderGrid(); showBanner();
+    syncStatus('ok','Синхронізовано: '+fmtDT(new Date().toISOString()));
+  } catch(e){
+    syncStatus('err','Помилка завантаження');
+    showToast('Не вдалось завантажити дані', true);
+  }
+  document.getElementById('btn-refresh').disabled=false;
+}
 
-    function openModal(isNew, idx = null) {
-        currentIdx = isNew ? null : idx;
-        const p = isNew ? {num:'', model:CFG.models[0], mat:CFG.mats[0], color:CFG.colors[0], spoolId:'large', holderId:'stand', totalG:0} : printers[idx];
-        
-        const fill = (id, obj, val) => {
-            const s = document.getElementById(id);
-            if(Array.isArray(obj)) s.innerHTML = obj.map(x => `<option value="${x}" ${x===val?'selected':''}>${x}</option>`).join('');
-            else s.innerHTML = Object.keys(obj).map(k => `<option value="${k}" ${k===val?'selected':''}>${obj[k].name || obj[k]}</option>`).join('');
-        };
+/* ── JSONbin push ── */
+async function pushData(){
+  savedAt=new Date().toISOString();
+  syncStatus('loading','Збереження...');
+  document.getElementById('btn-sync').disabled=true;
+  try {
+    const r=await fetch(BIN_URL,{
+      method:'PUT',
+      headers:HEADERS,
+      body:JSON.stringify({savedAt, printers, cfg:CFG})
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    showBanner();
+    syncStatus('ok','Збережено: '+fmtDT(savedAt));
+    showToast('Збережено — '+fmtDT(savedAt));
+  } catch(e){
+    syncStatus('err','Помилка збереження');
+    showToast('Не вдалось зберегти', true);
+  }
+  document.getElementById('btn-sync').disabled=false;
+}
 
-        fill('m-model', CFG.models, p.model);
-        fill('m-mat', CFG.mats, p.mat);
-        fill('m-color', CFG.colors, p.color);
-        fill('m-spool', CFG.spools, p.spoolId);
-        fill('m-holder', CFG.holders, p.holderId);
-        
-        document.getElementById('m-num').value = p.num;
-        document.getElementById('m-total').value = p.totalG;
-        calcNet();
-        
-        document.getElementById('modal').classList.add('open');
-    }
+/* ── Settings ── */
+function toggleSettings(){ document.getElementById('settings-panel').classList.toggle('open'); }
 
-    function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function renderSettings(){
+  renderCfgTags('models','cfg-models');
+  renderCfgTags('mats','cfg-mats');
+  renderCfgTags('colors','cfg-colors');
+  renderSpoolList(); renderHolderList();
+}
+function renderCfgTags(key,elId){
+  document.getElementById(elId).innerHTML=CFG[key].map((v,i)=>
+    `<span class="tag">${v}<button class="tag-del" onclick="removeCfgItem('${key}',${i})">×</button></span>`
+  ).join('');
+}
+function addCfgItem(key,inputId,elId){
+  const inp=document.getElementById(inputId), val=inp.value.trim();
+  if(!val)return;
+  if(!CFG[key].includes(val)){ CFG[key].push(val); renderCfgTags(key,elId); }
+  inp.value='';
+}
+function removeCfgItem(key,idx){ CFG[key].splice(idx,1); renderSettings(); }
 
-    function saveData() {
-        const p = {
-            num: document.getElementById('m-num').value,
-            model: document.getElementById('m-model').value,
-            mat: document.getElementById('m-mat').value,
-            color: document.getElementById('m-color').value,
-            spoolId: document.getElementById('m-spool').value,
-            holderId: document.getElementById('m-holder').value,
-            totalG: parseInt(document.getElementById('m-total').value) || 0
-        };
-        if(currentIdx === null) printers.push(p);
-        else printers[currentIdx] = p;
-        
-        renderGrid();
-        closeModal();
-        showToast('Збережено локально. Не забудьте хмару!');
-    }
+function renderSpoolList(){
+  document.getElementById('cfg-spools').innerHTML=CFG.spools.map((s,i)=>
+    `<div class="item-row"><span>${s.label} · макс ${s.maxNet} г</span><button class="item-del" onclick="removeSpool(${i})">×</button></div>`
+  ).join('');
+}
+function addSpool(){
+  const name=document.getElementById('new-spool-name').value.trim();
+  const w=parseInt(document.getElementById('new-spool-w').value)||0;
+  const mx=parseInt(document.getElementById('new-spool-max').value)||0;
+  if(!name||!w||!mx)return;
+  CFG.spools.push({id:genId(),label:`${name} · ${w} г`,weight:w,maxNet:mx});
+  renderSpoolList();
+  document.getElementById('new-spool-name').value='';
+  document.getElementById('new-spool-w').value='';
+  document.getElementById('new-spool-max').value='';
+}
+function removeSpool(i){ CFG.spools.splice(i,1); renderSpoolList(); }
 
-    window.onload = () => {
-        document.getElementById('bin-id').value = localStorage.getItem('bin_id') || '';
-        document.getElementById('api-key').value = localStorage.getItem('api_key') || '';
-        if(localStorage.getItem('bin_id')) loadFromCloud();
-    };
+function renderHolderList(){
+  document.getElementById('cfg-holders').innerHTML=CFG.holders.map((h,i)=>
+    `<div class="item-row"><span>${h.label}</span><button class="item-del" onclick="removeHolder(${i})">×</button></div>`
+  ).join('');
+}
+function addHolder(){
+  const name=document.getElementById('new-holder-name').value.trim();
+  const w=parseInt(document.getElementById('new-holder-w').value)||0;
+  if(!name||!w)return;
+  CFG.holders.push({id:genId(),label:`${name} · ${w} г`,weight:w});
+  renderHolderList();
+  document.getElementById('new-holder-name').value='';
+  document.getElementById('new-holder-w').value='';
+}
+function removeHolder(i){ CFG.holders.splice(i,1); renderHolderList(); }
+
+/* ── Filters ── */
+function getMaterials(){ return ['all',...new Set(printers.map(p=>p.mat))]; }
+function renderFilters(){
+  document.getElementById('filters').innerHTML=getMaterials().map(m=>
+    `<button class="filter-btn ${activeFilter===m?'active':''}" onclick="setFilter('${m}')">${m==='all'?'Усі':m}</button>`
+  ).join('');
+}
+function setFilter(m){ activeFilter=m; renderFilters(); renderGrid(); }
+document.getElementById('search').addEventListener('input',e=>{ searchQ=e.target.value; renderGrid(); });
+
+/* ── Stats ── */
+function renderStats(data){
+  const nets=data.map(p=>netG(p.totalG,p.spoolId||'large',p.holderType||'stand'));
+  const avgG=data.length?Math.round(nets.reduce((a,b)=>a+b,0)/data.length):0;
+  const low=data.filter(p=>pctOf(p.totalG,p.spoolId||'large',p.holderType||'stand')<40).length;
+  const full=data.filter(p=>pctOf(p.totalG,p.spoolId||'large',p.holderType||'stand')>=100).length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat-box"><div class="stat-label">Принтерів</div><div class="stat-val">${data.length}</div></div>
+    <div class="stat-box"><div class="stat-label">Середній залишок</div><div class="stat-val">${avgG} г</div></div>
+    <div class="stat-box"><div class="stat-label">Мало (&lt;40%)</div><div class="stat-val" style="color:${low>0?'#E24B4A':'inherit'}">${low}</div></div>
+    <div class="stat-box"><div class="stat-label">Повні</div><div class="stat-val" style="color:#1D9E75">${full}</div></div>
+  `;
+}
+
+/* ── Grid ── */
+function renderGrid(){
+  const q=searchQ.trim().toLowerCase();
+  const filtered=printers.map((p,i)=>({...p,_i:i})).filter(p=>
+    (activeFilter==='all'||p.mat===activeFilter)&&(!q||p.num.includes(q)||(p.model||'').toLowerCase().includes(q))
+  );
+  renderStats(filtered);
+  const g=document.getElementById('grid');
+  if(!filtered.length){ g.innerHTML='<p style="color:#888;font-size:14px;padding:1rem 0">Нічого не знайдено</p>'; return; }
+  g.innerHTML=filtered.map(p=>{
+    const mc=matColor(p.mat);
+    const dot=colorDots[p.color]||'#aaa';
+    const sid=p.spoolId||'large', hid=p.holderType||'stand';
+    const sp=spoolById(sid), hd=holderById(hid);
+    const fg=netG(p.totalG,sid,hid), pct=pctOf(p.totalG,sid,hid);
+    return `<div class="card">
+      <div class="card-top">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px;opacity:.2">🖨</span>
+            <span class="printer-num">#${p.num}</span>
+          </div>
+          ${p.model?`<div class="printer-model">${p.model}</div>`:''}
+          <span class="material-badge" style="background:${mc.bg};color:${mc.text}">${p.mat}</span><span class="spool-badge">${sp.label.split('·')[0].trim()} · ${hd.label.split('·')[0].trim()}</span>
+        </div>
+        <div class="card-actions">
+          <button class="edit-btn" onclick="openModal(${p._i})">✏</button>
+          <button class="del-btn" onclick="deletePrinter(${p._i})">×</button>
+        </div>
+      </div>
+      <div class="color-dot-row">
+        <div class="color-dot" style="background:${dot}"></div>
+        <span class="color-name">${p.color}</span>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label"><span>Філамент</span><span><span class="grams-big">${fg} г</span><span class="grams-pct">${pct}%</span></span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${barColor(pct)}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Delete ── */
+function deletePrinter(idx){
+  if(!confirm(`Видалити принтер #${printers[idx].num}?`))return;
+  printers.splice(idx,1); renderFilters(); renderGrid();
+  showToast('Принтер видалено — натисни ☁ Зберегти');
+}
+
+/* ── Modal ── */
+function buildSeg(containerId, items, currentId, setter){
+  document.getElementById(containerId).innerHTML=items.map(item=>
+    `<button id="seg-${containerId}-${item.id}" class="${item.id===currentId?'active':''}" onclick="${setter}('${item.id}')">${item.label}</button>`
+  ).join('');
+}
+function buildSelect(elId, options, cur){
+  document.getElementById(elId).innerHTML=options.map(o=>`<option value="${o}" ${o===cur?'selected':''}>${o}</option>`).join('');
+}
+function setSegSpool(id){
+  currentSpoolId=id;
+  CFG.spools.forEach(s=>{ const b=document.getElementById(`seg-seg-spool-${s.id}`); if(b)b.classList.toggle('active',s.id===id); });
+  updateTareInfo(); updateCalcHint();
+}
+function setSegHolder(id){
+  currentHolderId=id;
+  CFG.holders.forEach(h=>{ const b=document.getElementById(`seg-seg-holder-${h.id}`); if(b)b.classList.toggle('active',h.id===id); });
+  updateTareInfo(); updateCalcHint();
+}
+function updateTareInfo(){
+  const sp=spoolById(currentSpoolId), hd=holderById(currentHolderId);
+  document.getElementById('tare-info').textContent=`мінус ${sp.weight} г котушка + ${hd.weight} г тримач = ${sp.weight+hd.weight} г тара`;
+}
+function updateCalcHint(){
+  const raw=parseInt(document.getElementById('edit-grams').value)||0;
+  if(raw>0){
+    const fg=Math.max(0,raw-getTare(currentSpoolId,currentHolderId));
+    const pct=Math.min(100,Math.round(fg/getMaxNet(currentSpoolId)*100));
+    document.getElementById('calc-hint').textContent=`→ ${fg} г філаменту (${pct}% від ${getMaxNet(currentSpoolId)} г)`;
+  } else document.getElementById('calc-hint').textContent='';
+}
+document.getElementById('edit-grams').addEventListener('input',updateCalcHint);
+
+function openModal(idx){
+  editIdx=idx; isNew=false;
+  const p=printers[idx];
+  document.getElementById('modal-title').textContent='Принтер #'+p.num;
+  document.getElementById('modal-save-btn').textContent='Зберегти';
+  document.getElementById('edit-num').value=p.num;
+  buildSelect('edit-model',CFG.models,p.model||CFG.models[0]);
+  currentSpoolId=p.spoolId||CFG.spools[0].id;
+  currentHolderId=p.holderType||CFG.holders[0].id;
+  buildSeg('seg-spool',CFG.spools,currentSpoolId,'setSegSpool');
+  buildSeg('seg-holder',CFG.holders,currentHolderId,'setSegHolder');
+  buildSelect('edit-mat',CFG.mats,p.mat);
+  buildSelect('edit-color',CFG.colors,p.color);
+  document.getElementById('edit-grams').value=p.totalG;
+  updateTareInfo(); updateCalcHint();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function openAddPrinter(){
+  editIdx=null; isNew=true;
+  document.getElementById('modal-title').textContent='Новий принтер';
+  document.getElementById('modal-save-btn').textContent='Додати';
+  document.getElementById('edit-num').value='';
+  buildSelect('edit-model',CFG.models,CFG.models[0]);
+  currentSpoolId=CFG.spools[0].id;
+  currentHolderId=CFG.holders[0].id;
+  buildSeg('seg-spool',CFG.spools,currentSpoolId,'setSegSpool');
+  buildSeg('seg-holder',CFG.holders,currentHolderId,'setSegHolder');
+  buildSelect('edit-mat',CFG.mats,CFG.mats[0]);
+  buildSelect('edit-color',CFG.colors,CFG.colors[0]);
+  document.getElementById('edit-grams').value='';
+  document.getElementById('calc-hint').textContent='';
+  updateTareInfo();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); editIdx=null; }
+
+function saveEdit(){
+  const num=document.getElementById('edit-num').value.trim();
+  if(!num){ showToast('Введіть номер принтера',true); return; }
+  const entry={
+    id: isNew?genId():(printers[editIdx]?.id||genId()),
+    num, model:document.getElementById('edit-model').value,
+    mat:document.getElementById('edit-mat').value,
+    color:document.getElementById('edit-color').value,
+    spoolId:currentSpoolId, holderType:currentHolderId,
+    totalG:parseInt(document.getElementById('edit-grams').value)||0,
+  };
+  if(isNew) printers.push(entry);
+  else printers[editIdx]=entry;
+  closeModal(); renderFilters(); renderGrid();
+  showToast((isNew?'Принтер додано':'Збережено')+' — натисни ☁ Зберегти');
+}
+
+document.getElementById('overlay').addEventListener('click',function(e){ if(e.target===this)closeModal(); });
+
+/* ── Init ── */
+renderSettings();
+pullData();
 </script>
 </body>
 </html>
